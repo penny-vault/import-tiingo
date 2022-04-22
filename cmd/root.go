@@ -18,8 +18,10 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/penny-vault/import-tiingo/tiingo"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -35,10 +37,25 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
+		log.Info().
+			Dur("MaxAge", viper.GetDuration("max_age")).
+			Strs("Exchanges", viper.GetStringSlice("exchanges")).
+			Strs("AssetTypes", viper.GetStringSlice("asset_types")).
+			Msg("loading tickers")
+
 		assets := tiingo.FetchTickers()
-		assets = tiingo.FilterExchange(assets, []string{"AMEX", "BATS", "NASDAQ", "NMFQS", "NYSE", "NYSE ARCA", "NYSE MKT"})
-		for _, asset := range assets {
-			log.Info().Msg(asset.Ticker)
+		assets = tiingo.FilterExchange(assets, viper.GetStringSlice("exchanges"))
+		assets = tiingo.FilterAssetType(assets, viper.GetStringSlice("asset_types"))
+		assets = tiingo.FilterAge(assets, viper.GetDuration("max_age"))
+
+		limit := viper.GetInt("limit")
+		if limit > 0 {
+			assets = assets[:limit]
+		}
+
+		quotes := tiingo.FetchEodQuotes(assets)
+		if viper.GetString("parquet_file") != "" {
+			tiingo.SaveToParquet(quotes, viper.GetString("parquet_file"))
 		}
 	},
 }
@@ -54,22 +71,46 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(initLog)
 
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is import-tiingo.toml)")
+	rootCmd.PersistentFlags().Bool("log.json", false, "print logs as json to stderr")
+	viper.BindPFlag("log.json", rootCmd.PersistentFlags().Lookup("log.json"))
 
 	// Local flags
-	rootCmd.Flags().StringP("tiingo_token", "t", "<not-set>", "tiingo API key token")
-	viper.BindPFlag("tiingo_token", rootCmd.Flags().Lookup("tiingo_token"))
+	rootCmd.Flags().StringP("tiingo-token", "t", "<not-set>", "tiingo API key token")
+	viper.BindPFlag("tiingo_token", rootCmd.Flags().Lookup("tiingo-token"))
 
-	rootCmd.Flags().StringP("database_url", "d", "host=localhost port=5432", "DSN for database connection")
-	viper.BindPFlag("database_url", rootCmd.Flags().Lookup("database_url"))
+	rootCmd.Flags().StringP("database-url", "d", "host=localhost port=5432", "DSN for database connection")
+	viper.BindPFlag("database_url", rootCmd.Flags().Lookup("database-url"))
 
 	rootCmd.Flags().Uint32P("limit", "l", 0, "limit results to N")
 	viper.BindPFlag("limit", rootCmd.Flags().Lookup("limit"))
+
+	rootCmd.Flags().StringArray("asset-types", []string{"Stock", "Mutual Fund"}, "types of assets to download")
+	viper.BindPFlag("asset_types", rootCmd.Flags().Lookup("asset-types"))
+
+	rootCmd.Flags().StringArray("exchanges", []string{"AMEX", "BATS", "NASDAQ", "NMFQS", "NYSE", "NYSE ARCA", "NYSE MKT"}, "types of assets to download")
+	viper.BindPFlag("exchanges", rootCmd.Flags().Lookup("exchanges"))
+
+	rootCmd.Flags().Duration("max-age", 24*7*time.Hour, "maximum number of days stocks end date may be set too and still included")
+	viper.BindPFlag("max_age", rootCmd.Flags().Lookup("max-age"))
+
+	rootCmd.Flags().Int("tiingo-rate-limit", 5, "tiingo rate limit (items per second)")
+	viper.BindPFlag("tiingo_rate_limit", rootCmd.Flags().Lookup("tiingo-rate-limit"))
+
+	rootCmd.Flags().String("parquet-file", "", "save results to parquet")
+	viper.BindPFlag("parquet_file", rootCmd.Flags().Lookup("parquet-file"))
+}
+
+func initLog() {
+	if !viper.GetBool("log.json") {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	}
 }
 
 // initConfig reads in config file and ENV variables if set.
