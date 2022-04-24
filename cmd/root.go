@@ -57,6 +57,10 @@ var rootCmd = &cobra.Command{
 		if viper.GetString("parquet_file") != "" {
 			tiingo.SaveToParquet(quotes, viper.GetString("parquet_file"))
 		}
+
+		if viper.GetString("database_url") != "" {
+			tiingo.SaveToDatabase(quotes, viper.GetString("database_url"))
+		}
 	},
 }
 

@@ -18,6 +18,7 @@ package tiingo
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -25,6 +26,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/gocarina/gocsv"
+	"github.com/jackc/pgx/v4"
 	"github.com/rs/zerolog/log"
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/viper"
@@ -35,23 +37,18 @@ import (
 )
 
 type Eod struct {
-	Date           string  `json:"date" parquet:"name=date, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Ticker         string  `json:"ticker" parquet:"name=ticker, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Exchange       string  `json:"exchange" parquet:"name=exchange, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	AssetType      string  `json:"assetType" parquet:"name=assetType, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	CompositeFigi  string  `json:"compositeFigi" parquet:"name=compositeFigi, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Open           float32 `json:"open" parquet:"name=open, type=FLOAT"`
-	High           float32 `json:"high" parquet:"name=high, type=FLOAT"`
-	Low            float32 `json:"low" parquet:"name=low, type=FLOAT"`
-	Close          float32 `json:"close" parquet:"name=close, type=FLOAT"`
-	Volume         int64   `json:"volume" parquet:"name=volume, type=INT64, convertedtype=INT_64"`
-	AdjustedOpen   float32 `json:"adjOpen" parquet:"name=adjustedOpen, type=FLOAT"`
-	AdjustedHigh   float32 `json:"adjHigh" parquet:"name=adjustedHigh, type=FLOAT"`
-	AdjustedLow    float32 `json:"adjLow" parquet:"name=adjustedLow, type=FLOAT"`
-	AdjustedClose  float32 `json:"adjClose" parquet:"name=adjustedClose, type=FLOAT"`
-	AdjustedVolume int64   `json:"adjVolume" parquet:"name=adjustedVolume, type=INT64, convertedtype=INT_64"`
-	Dividend       float32 `json:"divCash" parquet:"name=dividend, type=FLOAT"`
-	Split          float32 `json:"splitFactor" parquet:"name=split, type=FLOAT"`
+	Date          string  `json:"date" parquet:"name=date, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Ticker        string  `json:"ticker" parquet:"name=ticker, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Exchange      string  `json:"exchange" parquet:"name=exchange, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	AssetType     string  `json:"assetType" parquet:"name=assetType, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	CompositeFigi string  `json:"compositeFigi" parquet:"name=compositeFigi, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Open          float32 `json:"open" parquet:"name=open, type=FLOAT"`
+	High          float32 `json:"high" parquet:"name=high, type=FLOAT"`
+	Low           float32 `json:"low" parquet:"name=low, type=FLOAT"`
+	Close         float32 `json:"close" parquet:"name=close, type=FLOAT"`
+	Volume        int64   `json:"volume" parquet:"name=volume, type=INT64, convertedtype=INT_64"`
+	Dividend      float32 `json:"divCash" parquet:"name=dividend, type=FLOAT"`
+	Split         float32 `json:"splitFactor" parquet:"name=split, type=FLOAT"`
 }
 
 type Asset struct {
@@ -258,4 +255,63 @@ func FilterAge(assets []*Asset, maxAge time.Duration) []*Asset {
 		}
 	}
 	return res
+}
+
+func SaveToDatabase(quotes []*Eod, dsn string) error {
+	log.Info().Msg("saving to database")
+	conn, err := pgx.Connect(context.Background(), viper.GetString("DATABASE_URL"))
+	if err != nil {
+		log.Error().Str("OriginalError", err.Error()).Msg("Could not connect to database")
+	}
+	defer conn.Close(context.Background())
+
+	for _, quote := range quotes {
+		_, err := conn.Exec(context.Background(),
+			`INSERT INTO eod_v1 (
+			"ticker",
+			"composite_figi",
+			"event_date",
+			"open",
+			"high",
+			"low",
+			"close",
+			"volume",
+			"dividend",
+			"split_factor",
+			"source"
+		) VALUES (
+			$1,
+			$2,
+			$3,
+			$4,
+			$5,
+			$6,
+			$7,
+			$8,
+			$9,
+			$10,
+			$11
+		) ON CONFLICT ON CONSTRAINT eod_v1_pkey
+		DO UPDATE SET
+			open = EXCLUDED.open,
+			high = EXCLUDED.high,
+			low = EXCLUDED.low,
+			close = EXCLUDED.close,
+			volume = EXCLUDED.volume,
+			dividend = EXCLUDED.dividend,
+			split_factor = EXCLUDED.split_factor,
+			source = EXCLUDED.source;`,
+			quote.Ticker, quote.CompositeFigi, quote.Date,
+			quote.Open, quote.High, quote.Low, quote.Close, quote.Volume,
+			quote.Dividend, quote.Split, "fred.stlouisfed.org")
+		if err != nil {
+			query := fmt.Sprintf(`INSERT INTO eod_v1 ("ticker", "composite_figi", "event_date", "open", "high", "low", "close", "volume", "dividend", "split_factor", "source") VALUES ('%s', '%s', '%s', %.5f, %.5f, %.5f, %.5f, %d, %.5f, %.5f, '%s') ON CONFLICT ON CONSTRAINT eod_v1_pkey DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume, dividend = EXCLUDED.dividend, split_factor = EXCLUDED.split_factor, source = EXCLUDED.source;`,
+				quote.Ticker, quote.CompositeFigi, quote.Date,
+				quote.Open, quote.High, quote.Low, quote.Close, quote.Volume,
+				quote.Dividend, quote.Split, "fred.stlouisfed.org")
+			log.Error().Str("OriginalError", err.Error()).Str("Query", query).Msg("error saving EOD quote to database")
+		}
+	}
+
+	return nil
 }
