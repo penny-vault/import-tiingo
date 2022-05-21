@@ -28,7 +28,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            import-tickers
+            import-tiingo
   docker:
     runs-on: ubuntu-latest
     steps:
