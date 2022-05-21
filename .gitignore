@@ -17,3 +17,5 @@ import-tiingo
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+import-tiingo.toml
