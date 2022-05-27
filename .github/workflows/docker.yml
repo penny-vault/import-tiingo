@@ -1,34 +1,9 @@
-name: Release
+name: Docker
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
+  workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version-file: 'go.mod'
-
-      - name: Run Mage
-        uses: magefile/mage-action@v2
-        with:
-          version: latest
-          args: build
-
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: |
-            import-tiingo
   docker:
     runs-on: ubuntu-latest
     steps:
