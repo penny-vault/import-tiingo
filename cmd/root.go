@@ -39,7 +39,11 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
+		// validate asset types
+		validatedAssetTypes := getAssetTypes()
+
 		log.Info().
+			Strs("asset-types", validatedAssetTypes).
 			Str("History", viper.GetDuration("tiingo.history").String()).
 			Msg("loading tickers")
 
@@ -103,6 +107,10 @@ func init() {
 	rootCmd.PersistentFlags().Bool("hide-progress", false, "hide progress bar")
 	viper.BindPFlag("display.hide_progress", rootCmd.PersistentFlags().Lookup("hide-progress"))
 
+	rootCmd.PersistentFlags().StringSlice("asset-types", []string{"Common Stock", "Preferred Stock", "Exchange Traded Fund", "Exchange Traded Note", "Mutual Fund", "Closed-End Fund", "American Depository Receipt Common"}, "List of asset types to include in download. Valid values include: `Common Stock`, `Preferred Stock`, `Exchange Traded Fund`, `Exchange Traded Note`, `Mutual Fund`, `Closed-End Fund`, `American Depository Receipt Common`, `Economic Indicator`")
+	viper.BindPFlag("asset_types", rootCmd.PersistentFlags().Lookup("asset-types"))
+
+	// local
 	rootCmd.Flags().IntVar(&maxAssets, "max", -1, "maximum assets to download")
 }
 
@@ -138,4 +146,40 @@ func initConfig() {
 	} else {
 		log.Error().Err(err).Msg("error reading config file")
 	}
+}
+
+func getAssetTypes() []string {
+	assetAlias := map[string]string{
+		"CS":   "Common Stock",
+		"PS":   "Preferred Stock",
+		"ETF":  "Exchange Traded Fund",
+		"ETN":  "Exchange Traded Note",
+		"MF":   "Mutual Fund",
+		"CEF":  "Closed-End Fund",
+		"ADRC": "American Depository Receipt Common",
+	}
+
+	assetTypes := viper.GetStringSlice("asset_types")
+	validAssetTypes := []string{"Common Stock", "Preferred Stock", "Exchange Traded Fund", "Exchange Traded Note", "Mutual Fund", "Closed-End Fund", "American Depository Receipt Common"}
+	validatedAssetTypes := make([]string, 0, len(validAssetTypes))
+	for _, typ := range assetTypes {
+		contains := false
+		if translatedName, ok := assetAlias[typ]; ok {
+			typ = translatedName
+		}
+		for _, myType := range validAssetTypes {
+			if typ == myType {
+				contains = true
+				break
+			}
+		}
+		if !contains {
+			log.Warn().Str("option", typ).Msg("Provided option is not supported ... ignoring")
+			continue
+		} else {
+			validatedAssetTypes = append(validatedAssetTypes, typ)
+		}
+	}
+
+	return validatedAssetTypes
 }
