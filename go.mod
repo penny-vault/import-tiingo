@@ -14,8 +14,6 @@ require (
 	go.uber.org/ratelimit v0.2.0
 )
 
-require github.com/kr/text v0.2.0 // indirect
-
 require (
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40 // indirect
