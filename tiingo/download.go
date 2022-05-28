@@ -153,9 +153,9 @@ func SaveToParquet(records []*Eod, fn string) error {
 }
 
 // SaveToDatabase saves EOD quotes to the penny vault database
-func SaveToDatabase(quotes []*Eod, dsn string) error {
+func SaveToDatabase(quotes []*Eod) error {
 	log.Info().Msg("saving to database")
-	conn, err := pgx.Connect(context.Background(), dsn)
+	conn, err := pgx.Connect(context.Background(), viper.GetString("database.url"))
 	if err != nil {
 		log.Error().Err(err).Msg("Could not connect to database")
 	}

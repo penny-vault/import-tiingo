@@ -43,7 +43,7 @@ var rootCmd = &cobra.Command{
 			Dur("History", viper.GetDuration("tiingo.history")).
 			Msg("loading tickers")
 
-		assets := common.ReadFromDatabase(viper.GetString("database.url"))
+		assets := common.ReadAssetsFromDatabase(validatedAssetTypes)
 		if maxAssets > 0 {
 			assets = assets[:maxAssets]
 		}
@@ -57,7 +57,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		if viper.GetString("database.url") != "" {
-			tiingo.SaveToDatabase(quotes, viper.GetString("database.url"))
+			tiingo.SaveToDatabase(quotes)
 		}
 	},
 }
