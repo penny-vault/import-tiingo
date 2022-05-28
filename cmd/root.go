@@ -40,13 +40,15 @@ var rootCmd = &cobra.Command{
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Info().
-			Dur("History", viper.GetDuration("tiingo.history")).
+			Str("History", viper.GetDuration("tiingo.history").String()).
 			Msg("loading tickers")
 
 		assets := common.ReadAssetsFromDatabase(validatedAssetTypes)
 		if maxAssets > 0 {
 			assets = assets[:maxAssets]
 		}
+
+		log.Info().Int("NumAssets", len(assets)).Msg("downloading assets")
 
 		t := tiingo.New(viper.GetString("tiingo.token"), viper.GetInt("tiingo.rate_limit"))
 		startDate := time.Now().Add(viper.GetDuration("tiingo.history") * -1)
