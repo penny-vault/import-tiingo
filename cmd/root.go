@@ -98,7 +98,8 @@ func init() {
 	rootCmd.PersistentFlags().String("parquet-file", "", "save results to parquet")
 	viper.BindPFlag("parquet_file", rootCmd.PersistentFlags().Lookup("parquet-file"))
 
-	// local
+	rootCmd.PersistentFlags().Bool("hide-progress", false, "hide progress bar")
+	viper.BindPFlag("display.hide_progress", rootCmd.PersistentFlags().Lookup("hide-progress"))
 
 	rootCmd.Flags().IntVar(&maxAssets, "max", -1, "maximum assets to download")
 }
