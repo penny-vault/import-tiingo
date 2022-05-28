@@ -6,8 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Assets to download can now be limited by type.
+- `hide-progress` flag will suppress the progress bar output (useful when redirecting stdout/stderr to a log file)
 
 ### Changed
+- history time display shown in an easier to read format
 
 ### Deprecated
 

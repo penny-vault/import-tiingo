@@ -27,6 +27,7 @@ import (
 	"github.com/penny-vault/import-tiingo/common"
 	"github.com/rs/zerolog/log"
 	"github.com/schollz/progressbar/v3"
+	"github.com/spf13/viper"
 	"github.com/xitongsys/parquet-go-source/local"
 	"github.com/xitongsys/parquet-go/parquet"
 	"github.com/xitongsys/parquet-go/writer"
@@ -66,9 +67,14 @@ func (t *TiingoApi) FetchEodQuotes(assets []*common.Asset, startDate time.Time) 
 	client := resty.New()
 	startDateStr := startDate.Format("2006-01-02")
 
-	bar := progressbar.Default(int64(len(assets)))
+	var bar *progressbar.ProgressBar
+	if !viper.GetBool("display.hide_progress") {
+		bar = progressbar.Default(int64(len(assets)))
+	}
 	for _, asset := range assets {
-		bar.Add(1)
+		if bar != nil {
+			bar.Add(1)
+		}
 		t.rate.Take()
 		// translate ticker to Tiingo ticker format; i.e. / turns to -
 		ticker := strings.ReplaceAll(asset.Ticker, "/", "-")
@@ -147,9 +153,9 @@ func SaveToParquet(records []*Eod, fn string) error {
 }
 
 // SaveToDatabase saves EOD quotes to the penny vault database
-func SaveToDatabase(quotes []*Eod, dsn string) error {
+func SaveToDatabase(quotes []*Eod) error {
 	log.Info().Msg("saving to database")
-	conn, err := pgx.Connect(context.Background(), dsn)
+	conn, err := pgx.Connect(context.Background(), viper.GetString("database.url"))
 	if err != nil {
 		log.Error().Err(err).Msg("Could not connect to database")
 	}

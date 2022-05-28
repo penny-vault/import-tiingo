@@ -46,7 +46,7 @@ type Asset struct {
 	Source               string    `json:"source" parquet:"name=source, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 }
 
-func ReadFromDatabase(dsn string) []*Asset {
+func ReadAssetsFromDatabase(assetTypes []string) []*Asset {
 	log.Info().Msg("reading from database")
 	ctx := context.Background()
 	conn, err := pgx.Connect(ctx, viper.GetString("database.url"))
@@ -57,7 +57,7 @@ func ReadFromDatabase(dsn string) []*Asset {
 	defer conn.Close(ctx)
 
 	var assets []*Asset
-	pgxscan.Select(ctx, conn, &assets, `SELECT ticker, name, asset_type, composite_figi FROM assets WHERE active='t'`)
+	pgxscan.Select(ctx, conn, &assets, `SELECT ticker, name, asset_type, composite_figi FROM assets WHERE active='t' and asset_type = any($1)`, assetTypes)
 	return assets
 }
 
