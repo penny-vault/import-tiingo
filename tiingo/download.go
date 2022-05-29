@@ -71,38 +71,59 @@ func (t *TiingoApi) FetchEodQuotes(assets []*common.Asset, startDate time.Time) 
 	if !viper.GetBool("display.hide_progress") {
 		bar = progressbar.Default(int64(len(assets)))
 	}
+	chans := make([]chan Eod, 0, len(assets))
 	for _, asset := range assets {
+		// rate limiting
+		t.rate.Take()
+
+		// update progress
 		if bar != nil {
 			bar.Add(1)
 		}
-		t.rate.Take()
-		// translate ticker to Tiingo ticker format; i.e. / turns to -
-		ticker := strings.ReplaceAll(asset.Ticker, "/", "-")
-		url := fmt.Sprintf("https://api.tiingo.com/tiingo/daily/%s/prices?startDate=%s&token=%s", ticker, startDateStr, t.token)
-		resp, err := client.
-			R().
-			SetHeader("Accept", "application/json").
-			Get(url)
-		if err != nil {
-			log.Error().Err(err).Str("Url", url).Msg("error when requesting eod quote")
-		}
-		if resp.StatusCode() >= 400 {
-			log.Error().Int("StatusCode", resp.StatusCode()).Str("Url", url).Bytes("Body", resp.Body()).Msg("error when requesting eod quote")
-		}
-		data := resp.Body()
-		var quote []*Eod
-		if err = json.Unmarshal(data, &quote); err != nil {
-			log.Error().Err(err).Str("Ticker", asset.Ticker).Msg("could not unmarshal json")
-		} else {
-			for _, q := range quote {
-				q.Ticker = asset.Ticker
-				q.CompositeFigi = asset.CompositeFigi
-				date, err := time.Parse(time.RFC3339, q.DateStr)
-				if err == nil {
-					q.Date = time.Date(date.Year(), date.Month(), date.Day(), 16, 0, 0, 0, nyc)
-				}
-				quotes = append(quotes, q)
+
+		// run download in parallel
+		resultChan := make(chan Eod, 10)
+		chans = append(chans, resultChan)
+
+		go func(myAsset *common.Asset, myResultChan chan Eod) {
+			defer close(myResultChan)
+			// translate ticker to Tiingo ticker format; i.e. / turns to -
+			ticker := strings.ReplaceAll(myAsset.Ticker, "/", "-")
+			url := fmt.Sprintf("https://api.tiingo.com/tiingo/daily/%s/prices?startDate=%s&token=%s", ticker, startDateStr, t.token)
+			resp, err := client.
+				R().
+				SetHeader("Accept", "application/json").
+				Get(url)
+			if err != nil {
+				log.Error().Err(err).Str("Url", url).Msg("error when requesting eod quote")
+				return
 			}
+			if resp.StatusCode() >= 400 {
+				log.Error().Int("StatusCode", resp.StatusCode()).Str("Url", url).Bytes("Body", resp.Body()).Msg("error when requesting eod quote")
+				return
+			}
+			data := resp.Body()
+			var quote []Eod
+			if err = json.Unmarshal(data, &quote); err != nil {
+				log.Error().Err(err).Str("Ticker", myAsset.Ticker).Msg("could not unmarshal json")
+			} else {
+				for _, q := range quote {
+					q.Ticker = myAsset.Ticker
+					q.CompositeFigi = myAsset.CompositeFigi
+					date, err := time.Parse(time.RFC3339, q.DateStr)
+					if err == nil {
+						q.Date = time.Date(date.Year(), date.Month(), date.Day(), 16, 0, 0, 0, nyc)
+					}
+					myResultChan <- q
+				}
+			}
+		}(asset, resultChan)
+	}
+
+	for _, ch := range chans {
+		// read individual eod values
+		for val := range ch {
+			quotes = append(quotes, &val)
 		}
 	}
 
