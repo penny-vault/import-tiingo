@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Use go channels to ensure that the requested download rate can be achieved
 
 ### Deprecated
 

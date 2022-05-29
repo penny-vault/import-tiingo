@@ -107,7 +107,7 @@ func init() {
 	rootCmd.PersistentFlags().Bool("hide-progress", false, "hide progress bar")
 	viper.BindPFlag("display.hide_progress", rootCmd.PersistentFlags().Lookup("hide-progress"))
 
-	rootCmd.PersistentFlags().StringSlice("asset-types", []string{"Common Stock", "Preferred Stock", "Exchange Traded Fund", "Exchange Traded Note", "Mutual Fund", "Closed-End Fund", "American Depository Receipt Common"}, "List of asset types to include in download. Valid values include: `Common Stock`, `Preferred Stock`, `Exchange Traded Fund`, `Exchange Traded Note`, `Mutual Fund`, `Closed-End Fund`, `American Depository Receipt Common`, `Economic Indicator`")
+	rootCmd.PersistentFlags().StringSlice("asset-types", []string{"Common Stock", "Preferred Stock", "Exchange Traded Fund", "Exchange Traded Note", "Mutual Fund", "Closed-End Fund", "American Depository Receipt Common"}, "List of asset types to include in download. Valid values include: `Common Stock`, `Preferred Stock`, `Exchange Traded Fund`, `Exchange Traded Note`, `Mutual Fund`, `Closed-End Fund`, `American Depository Receipt Common`")
 	viper.BindPFlag("asset_types", rootCmd.PersistentFlags().Lookup("asset-types"))
 
 	// local
