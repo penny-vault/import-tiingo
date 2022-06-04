@@ -48,22 +48,20 @@ var tickerCmd = &cobra.Command{
 	Short: "Download eod quotes for the given tickers",
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Info().
-			Dur("History", viper.GetDuration("tiingo.history")).
+			Str("History", viper.GetDuration("tiingo.history").String()).
 			Int("NumAssets", len(args)).
 			Msg("loading tickers")
 
-		var assets []*common.Asset
-		for _, arg := range args {
-			asset := &common.Asset{
-				Ticker: arg,
-			}
-			assets = append(assets, asset)
-		}
+		assets := common.LoadAssetFromDB(args)
 
 		t := tiingo.New(viper.GetString("tiingo.token"), viper.GetInt("tiingo.rate_limit"))
 		startDate := time.Now().Add(viper.GetDuration("tiingo.history") * -1)
 		quotes := t.FetchEodQuotes(assets, startDate)
 
 		printTable(quotes)
+
+		if viper.GetString("database.url") != "" {
+			tiingo.SaveToDatabase(quotes)
+		}
 	},
 }

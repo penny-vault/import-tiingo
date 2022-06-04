@@ -123,7 +123,8 @@ func (t *TiingoApi) FetchEodQuotes(assets []*common.Asset, startDate time.Time) 
 	for _, ch := range chans {
 		// read individual eod values
 		for val := range ch {
-			quotes = append(quotes, &val)
+			copy := val
+			quotes = append(quotes, &copy)
 		}
 	}
 
