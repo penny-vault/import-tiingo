@@ -24,7 +24,7 @@ require (
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40 // indirect
 	github.com/apache/thrift v0.16.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
-	github.com/georgysavva/scany v1.0.0
+	github.com/georgysavva/scany v1.1.0
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
