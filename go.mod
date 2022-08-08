@@ -37,7 +37,7 @@ require (
 	github.com/jackc/pgtype v1.12.0 // indirect
 	github.com/jackc/pgx/v4 v4.17.0
 	github.com/jackc/puddle v1.2.1 // indirect
-	github.com/jedib0t/go-pretty/v6 v6.3.5
+	github.com/jedib0t/go-pretty/v6 v6.3.6
 	github.com/klauspost/compress v1.15.5 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
