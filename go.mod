@@ -6,7 +6,7 @@ require (
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/magefile/mage v1.14.0
 	github.com/rs/zerolog v1.28.0
-	github.com/schollz/progressbar/v3 v3.12.2
+	github.com/schollz/progressbar/v3 v3.13.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.14.0
 	github.com/xitongsys/parquet-go v1.6.2
@@ -16,7 +16,7 @@ require (
 
 require (
 	github.com/mattn/go-colorable v0.1.12 // indirect
-	github.com/mattn/go-isatty v0.0.16 // indirect
+	github.com/mattn/go-isatty v0.0.17 // indirect
 )
 
 require (
@@ -54,8 +54,8 @@ require (
 	github.com/subosito/gotenv v1.4.1 // indirect
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
 	golang.org/x/net v0.0.0-20221014081412-f15817d10f9b // indirect
-	golang.org/x/sys v0.3.0 // indirect
-	golang.org/x/term v0.3.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/term v0.4.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
