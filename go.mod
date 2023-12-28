@@ -3,7 +3,7 @@ module github.com/penny-vault/import-tiingo
 go 1.21
 
 require (
-	github.com/go-resty/resty/v2 v2.10.0
+	github.com/go-resty/resty/v2 v2.11.0
 	github.com/magefile/mage v1.15.0
 	github.com/rs/zerolog v1.31.0
 	github.com/schollz/progressbar/v3 v3.14.1
